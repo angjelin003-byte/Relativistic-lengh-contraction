@@ -79,6 +79,7 @@ export default function App() {
           onStateChange={setState}
           metrics={metrics}
           onOpenExplainer={() => setIsExplainerOpen(true)}
+          onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         />
       </div>
 

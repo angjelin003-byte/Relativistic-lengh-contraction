@@ -11,15 +11,19 @@ Interactive 3D visualization of relativistic length contraction of a moving cube
 
 ---
 
-## 🚀 Building the Android APK on GitHub (Actions)
+## 🚀 Building & Downloading the Android APK on GitHub (Mobile & Desktop)
 
-This repository includes a preconfigured GitHub Actions workflow at [`.github/workflows/build.yml`](.github/workflows/build.yml).
+This repository includes a preconfigured GitHub Actions workflow at [`.github/workflows/build.yml`](.github/workflows/build.yml) that builds the Android APK in the cloud and automatically publishes it to **GitHub Releases**.
 
-### Automatic Build on Push:
-1. Push or export this repository to GitHub.
-2. Navigate to the **Actions** tab on your GitHub repository.
-3. The **"Build Android APK with Gradle and Python"** workflow will trigger automatically.
-4. Once completed, download the built APK artifact: `RelativisticCube-Android-APK`.
+### 📱 3-Step Guide for Mobile Web Users:
+1. **Export to GitHub**: In AI Studio, open the settings menu (⚙️ / `...`) and tap **"Export to GitHub"**.
+2. **Automated Cloud Compilation**: GitHub Actions automatically triggers the **"Build Android APK with Gradle and Python"** workflow. It sets up JDK 17, Python 3.10, Android SDK, and builds `Relativistic-Length-Contraction-0.99999999999c.apk` in ~2 minutes.
+3. **Direct Mobile Download & Install**:
+   - Open your exported repository on your mobile phone browser.
+   - Tap **"Releases"** on the repo homepage (tag `latest-apk`).
+   - Tap **`Relativistic-Length-Contraction-0.99999999999c.apk`** to download it directly to your phone.
+   - Tap the downloaded file in your notification drawer to install on Android!
+   - *(Alternative)*: Tap the **"Actions"** tab → tap the latest build run → download the `Relativistic-Length-Contraction-Android-APK` artifact.
 
 ---
 

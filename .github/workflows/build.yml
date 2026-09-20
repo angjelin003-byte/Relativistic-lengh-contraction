@@ -7,6 +7,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Android APK
@@ -27,26 +30,62 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
 
-      - name: Grant Execute Permission to gradlew
-        run: chmod +x gradlew
-
-      - name: Build Android Debug APK with gradlew
-        run: ./gradlew assembleDebug --stacktrace
-
-      - name: Locate Generated APK
+      - name: Build Android APK with Gradle
         run: |
-          echo "Listing generated APK files:"
-          find app/build/outputs/apk/ -name "*.apk" || true
+          gradle wrapper
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare Named APK for Mobile Download
+        run: |
+          mkdir -p build-artifacts
+          APK_PATH=$(find app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          if [ -n "$APK_PATH" ] && [ -f "$APK_PATH" ]; then
+            cp "$APK_PATH" build-artifacts/Relativistic-Length-Contraction-0.99999999999c.apk
+            echo "Successfully prepared APK: $APK_PATH"
+            ls -lh build-artifacts/
+          else
+            echo "Error: No APK found after build"
+            exit 1
+          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RelativisticCube-Android-APK
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 14
+          name: Relativistic-Length-Contraction-Android-APK
+          path: build-artifacts/*.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release (Direct Mobile APK Download)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: "Relativistic Length Contraction 3D (Android APK)"
+          body: |
+            ## 📱 Relativistic Length Contraction 3D for Android
+            Interactive Special Relativity cube deformation up to **0.99999999999 c** ($\gamma \approx 223,607$).
+
+            ### ⬇️ Direct Mobile Download
+            Tap the **`Relativistic-Length-Contraction-0.99999999999c.apk`** file below directly in your mobile browser to download and install on Android!
+            
+            - **Physics & Visual Features**:
+              - Relativistic flattening along axis of motion ($X, Y, Z$)
+              - Transparent atom grip points lattice demonstrating longitudinal packing ($\rho = \rho_0 \times \gamma$)
+              - Ghost rigid reference cube ($L_0 = 1.0\text{ m}$)
+              - Python Lorentz physics engine
+          files: build-artifacts/Relativistic-Length-Contraction-0.99999999999c.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true

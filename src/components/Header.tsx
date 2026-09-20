@@ -92,11 +92,12 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           id="btn-header-android"
           onClick={onOpenAndroidModal}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/50 text-xs font-medium transition"
-          title="Android APK & Python Build"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold transition min-h-[44px] shadow-sm"
+          title="Build Android APK via GitHub Actions"
         >
           <Smartphone className="w-4 h-4 text-emerald-400" />
-          <span className="hidden sm:inline">Android & Python</span>
+          <span className="sm:hidden">Build APK</span>
+          <span className="hidden sm:inline">Build Android APK</span>
         </button>
 
         {/* Physics Explainer Button */}

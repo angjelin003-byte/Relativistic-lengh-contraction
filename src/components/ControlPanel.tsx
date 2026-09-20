@@ -11,6 +11,8 @@ import {
   Sliders,
   Maximize2,
   Box,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 import { RelativisticState, RelativisticMetrics, MotionAxis } from '../types';
 import { SPEED_PRESETS, betaFromNines, countNines } from '../utils/physics';
@@ -20,6 +22,7 @@ interface ControlPanelProps {
   onStateChange: (updater: (prev: RelativisticState) => RelativisticState) => void;
   metrics: RelativisticMetrics;
   onOpenExplainer: () => void;
+  onOpenAndroidModal?: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -27,6 +30,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onStateChange,
   metrics,
   onOpenExplainer,
+  onOpenAndroidModal,
 }) => {
   // Handle slider change (0 to 1 with non-linear scale for high precision)
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -397,6 +401,34 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             </button>
           </div>
         </section>
+
+        {/* Section 5: Mobile Web - Build Android APK via GitHub Actions */}
+        {onOpenAndroidModal && (
+          <section className="pt-2 border-t border-slate-800/80">
+            <div className="p-3.5 rounded-xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-950 border border-emerald-800/50 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                  Android APK on Mobile
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  GitHub Cloud Build
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Export to GitHub via the settings menu. GitHub automatically compiles the native APK with Gradle & Python in ~2 mins.
+              </p>
+              <button
+                id="btn-sidebar-build-apk"
+                onClick={onOpenAndroidModal}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md min-h-[44px]"
+              >
+                <Download className="w-4 h-4" />
+                <span>Build & Download APK via GitHub</span>
+              </button>
+            </div>
+          </section>
+        )}
       </div>
     </aside>
   );
