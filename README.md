@@ -10,6 +10,12 @@ Interactive 3D visualization of relativistic length contraction of a moving cube
 - **Android Support**: Native Android app using Chaquopy to run Python directly on Android devices.
 
 ---
+## The warning ("Blocked by Play Protect" or "Unrecognized app") occurs because:
+Debug Certificate: The workflow runs ./gradlew assembleDebug, which signs the APK with Android's default generic debug.keystore. Debug certificates are intended only for local development and are explicitly flagged by Play Protect when sideloaded.
+When installing the debug APK on your phone:
+On the Play Protect dialog, tap "More details" (or the downward arrow).
+Tap "Install anyway".
+This is the standard procedure on Android when testing custom development builds.
 
 ## 🚀 Building & Downloading the Android APK on GitHub (Mobile & Desktop)
 
