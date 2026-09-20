@@ -15,7 +15,7 @@ import {
   Download,
 } from 'lucide-react';
 import { RelativisticState, RelativisticMetrics, MotionAxis } from '../types';
-import { SPEED_PRESETS, betaFromNines, countNines } from '../utils/physics';
+import { SPEED_PRESETS, betaFromNines, countNines } from '../utils/pythonEngine';
 
 interface ControlPanelProps {
   state: RelativisticState;

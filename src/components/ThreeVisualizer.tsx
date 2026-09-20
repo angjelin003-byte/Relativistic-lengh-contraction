@@ -2,18 +2,25 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RelativisticState, RelativisticMetrics, MotionAxis } from '../types';
-import { calculateMetrics, formatMetricLength } from '../utils/physics';
+import { formatMetricLength } from '../utils/pythonEngine';
+import { ViewerToolsMenu } from './ViewerToolsMenu';
 
 interface ThreeVisualizerProps {
   state: RelativisticState;
   onStateChange: (updater: (prev: RelativisticState) => RelativisticState) => void;
   metrics: RelativisticMetrics;
+  onMetricsUpdate?: (metrics: RelativisticMetrics) => void;
+  pythonScript: string;
+  onPythonScriptChange: (newScript: string) => void;
 }
 
 export const ThreeVisualizer: React.FC<ThreeVisualizerProps> = ({
   state,
   onStateChange,
   metrics,
+  onMetricsUpdate,
+  pythonScript,
+  onPythonScriptChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -21,18 +28,24 @@ export const ThreeVisualizer: React.FC<ThreeVisualizerProps> = ({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
 
+  // Viewer Tools states
+  const [autoRotate, setAutoRotate] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showAxes, setShowAxes] = useState(false);
+
   // Group references
   const movingCubeGroupRef = useRef<THREE.Group | null>(null);
   const ghostCubeGroupRef = useRef<THREE.Group | null>(null);
   const atomLatticeRef = useRef<THREE.InstancedMesh | null>(null);
   const ghostAtomsRef = useRef<THREE.InstancedMesh | null>(null);
   const latticeBondsRef = useRef<THREE.LineSegments | null>(null);
-  const ghostBondsRef = useRef<THREE.LineSegments | null>(null);
   const solidCubeMeshRef = useRef<THREE.Mesh | null>(null);
   const cubeEdgesRef = useRef<THREE.LineSegments | null>(null);
   const velocityArrowRef = useRef<THREE.ArrowHelper | null>(null);
   const measurementGroupRef = useRef<THREE.Group | null>(null);
   const laserGateGroupRef = useRef<THREE.Group | null>(null);
+  const gridHelperRef = useRef<THREE.GridHelper | null>(null);
+  const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
 
   const [activeCameraView, setActiveCameraView] = useState<'iso' | 'side' | 'front' | 'top' | 'macro'>('iso');
 
@@ -167,7 +180,14 @@ export const ThreeVisualizer: React.FC<ThreeVisualizerProps> = ({
     // Subtle spatial grid floor
     const gridHelper = new THREE.GridHelper(16, 32, 0x1e293b, 0x0f172a);
     gridHelper.position.y = -1.5;
+    gridHelperRef.current = gridHelper;
     scene.add(gridHelper);
+
+    // 3D XYZ Coordinate axes
+    const axesHelper = new THREE.AxesHelper(2.5);
+    axesHelper.visible = false;
+    axesHelperRef.current = axesHelper;
+    scene.add(axesHelper);
 
     // Laser measurement gates along the track
     const laserGroup = new THREE.Group();
@@ -625,73 +645,132 @@ export const ThreeVisualizer: React.FC<ThreeVisualizerProps> = ({
     laserGroup.add(gates);
   }, [state.showDimensions, state.motionAxis]);
 
+  // Handle Dynamic Grid, Axes, and Auto-Rotate
+  useEffect(() => {
+    if (gridHelperRef.current) {
+      gridHelperRef.current.visible = showGrid;
+    }
+  }, [showGrid]);
+
+  useEffect(() => {
+    if (axesHelperRef.current) {
+      axesHelperRef.current.visible = showAxes;
+    }
+  }, [showAxes]);
+
+  useEffect(() => {
+    if (controlsRef.current) {
+      controlsRef.current.autoRotate = autoRotate;
+      controlsRef.current.autoRotateSpeed = 1.8;
+    }
+  }, [autoRotate]);
+
+  const handleCaptureSnapshot = useCallback(() => {
+    if (!rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+    rendererRef.current.render(sceneRef.current, cameraRef.current);
+    const dataUrl = rendererRef.current.domElement.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `relativistic_cube_beta_${state.beta.toFixed(4)}.png`;
+    a.click();
+  }, [state.beta]);
+
+  const handleResetCamera = useCallback(() => {
+    if (!cameraRef.current || !controlsRef.current) return;
+    cameraRef.current.position.set(3.6, 2.8, 3.8);
+    controlsRef.current.target.set(0, 0, 0);
+    controlsRef.current.update();
+    setActiveCameraView('iso');
+  }, []);
+
   return (
     <div className="relative w-full h-full flex flex-col select-none overflow-hidden bg-slate-950">
       {/* 3D WebGL Canvas Container */}
       <div id="three-canvas-container" ref={containerRef} className="w-full flex-1 cursor-grab active:cursor-grabbing" />
 
-      {/* Top Floating View HUD / Camera Presets */}
-      <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 text-xs text-slate-300 shadow-xl">
-        <span className="font-semibold text-slate-400 mr-1 flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          Camera:
-        </span>
-        <button
-          id="btn-cam-iso"
-          onClick={() => setCameraPreset('iso')}
-          className={`px-2.5 py-1 rounded-md transition font-medium ${
-            activeCameraView === 'iso' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          Perspective
-        </button>
-        <button
-          id="btn-cam-side"
-          onClick={() => setCameraPreset('side')}
-          className={`px-2.5 py-1 rounded-md transition font-medium ${
-            activeCameraView === 'side' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          Side (Profile)
-        </button>
-        <button
-          id="btn-cam-front"
-          onClick={() => setCameraPreset('front')}
-          className={`px-2.5 py-1 rounded-md transition font-medium ${
-            activeCameraView === 'front' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          Head-On
-        </button>
-        <button
-          id="btn-cam-macro"
-          onClick={() => setCameraPreset('macro')}
-          className={`px-2.5 py-1 rounded-md transition font-medium ${
-            activeCameraView === 'macro' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'hover:bg-slate-800 text-slate-400'
-          }`}
-        >
-          Macro Wafer Zoom
-        </button>
-      </div>
-
-      {/* Axis of Motion Selector Quick Badge */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 text-xs shadow-xl">
-        <span className="text-slate-400 font-medium">Motion Axis:</span>
-        {(['x', 'y', 'z'] as MotionAxis[]).map((axis) => (
+      {/* Top Floating View HUD / Camera Presets & Motion Axis */}
+      <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2 max-w-[calc(100%-240px)]">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300 shadow-xl">
+          <span className="font-semibold text-slate-400 mr-1 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            Camera:
+          </span>
           <button
-            key={axis}
-            id={`btn-axis-${axis}`}
-            onClick={() => onStateChange((prev) => ({ ...prev, motionAxis: axis }))}
-            className={`px-2 py-0.5 rounded font-mono font-bold uppercase transition ${
-              state.motionAxis === axis
-                ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+            id="btn-cam-iso"
+            onClick={() => setCameraPreset('iso')}
+            className={`px-2 py-1 rounded-md transition font-medium ${
+              activeCameraView === 'iso' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'hover:bg-slate-800 text-slate-400'
             }`}
           >
-            {axis}
+            Perspective
           </button>
-        ))}
+          <button
+            id="btn-cam-side"
+            onClick={() => setCameraPreset('side')}
+            className={`px-2 py-1 rounded-md transition font-medium ${
+              activeCameraView === 'side' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'hover:bg-slate-800 text-slate-400'
+            }`}
+          >
+            Side
+          </button>
+          <button
+            id="btn-cam-front"
+            onClick={() => setCameraPreset('front')}
+            className={`px-2 py-1 rounded-md transition font-medium ${
+              activeCameraView === 'front' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'hover:bg-slate-800 text-slate-400'
+            }`}
+          >
+            Head-On
+          </button>
+          <button
+            id="btn-cam-macro"
+            onClick={() => setCameraPreset('macro')}
+            className={`px-2 py-1 rounded-md transition font-medium ${
+              activeCameraView === 'macro' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'hover:bg-slate-800 text-slate-400'
+            }`}
+          >
+            Macro
+          </button>
+        </div>
+
+        {/* Axis of Motion Selector */}
+        <div className="flex items-center gap-1.5 bg-slate-900/85 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-800 text-xs shadow-xl">
+          <span className="text-slate-400 font-medium">Axis:</span>
+          {(['x', 'y', 'z'] as MotionAxis[]).map((axis) => (
+            <button
+              key={axis}
+              id={`btn-axis-${axis}`}
+              onClick={() => onStateChange((prev) => ({ ...prev, motionAxis: axis }))}
+              className={`px-2 py-0.5 rounded font-mono font-bold uppercase transition ${
+                state.motionAxis === axis
+                  ? 'bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {axis}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Foldable Menu for Editing and Tools of the Viewer */}
+      <ViewerToolsMenu
+        state={state}
+        onStateChange={onStateChange}
+        metrics={metrics}
+        onMetricsUpdate={onMetricsUpdate}
+        onCameraPreset={setCameraPreset}
+        onResetCamera={handleResetCamera}
+        onCaptureSnapshot={handleCaptureSnapshot}
+        autoRotate={autoRotate}
+        onToggleAutoRotate={setAutoRotate}
+        showAxes={showAxes}
+        onToggleShowAxes={setShowAxes}
+        showGrid={showGrid}
+        onToggleShowGrid={setShowGrid}
+        pythonScript={pythonScript}
+        onPythonScriptChange={onPythonScriptChange}
+      />
 
       {/* Overlay: Live Dimension Comparison HUD */}
       <div className="absolute bottom-4 left-4 z-10 max-w-sm bg-slate-900/85 backdrop-blur-md p-3.5 rounded-xl border border-slate-800 shadow-2xl text-xs space-y-2">

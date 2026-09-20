@@ -11,7 +11,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { RelativisticMetrics, RelativisticState } from '../types';
-import { formatMetricLength } from '../utils/physics';
+import { formatMetricLength } from '../utils/pythonEngine';
 
 interface MetricsDashboardProps {
   metrics: RelativisticMetrics;

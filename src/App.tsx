@@ -1,6 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { RelativisticState } from './types';
-import { calculateMetrics } from './utils/physics';
+import React, { useState, useMemo, useEffect } from 'react';
+import { RelativisticState, RelativisticMetrics } from './types';
+import {
+  calculateMetrics,
+  DEFAULT_PYTHON_SCRIPT,
+  initPyodide,
+} from './utils/pythonEngine';
 import { ThreeVisualizer } from './components/ThreeVisualizer';
 import { ControlPanel } from './components/ControlPanel';
 import { MetricsDashboard } from './components/MetricsDashboard';
@@ -30,23 +34,38 @@ export default function App() {
     magnificationFactor: 1.0,
   });
 
+  const [pythonScript, setPythonScript] = useState<string>(DEFAULT_PYTHON_SCRIPT);
+  const [customMetricsOverride, setCustomMetricsOverride] = useState<RelativisticMetrics | null>(null);
   const [isExplainerOpen, setIsExplainerOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
 
-  // Compute live relativistic metrics
+  // Initialize Pyodide WebAssembly Python in the background if available
+  useEffect(() => {
+    initPyodide();
+  }, []);
+
+  // Compute live relativistic metrics via Python engine
   const metrics = useMemo(() => {
+    if (customMetricsOverride) {
+      return customMetricsOverride;
+    }
     // If in cube's rest frame, effective beta observed on the cube is 0
     const effectiveBeta = state.referenceFrame === 'cube' ? 0 : state.beta;
     const effectiveDelta = state.referenceFrame === 'cube' ? 1 : state.delta;
     return calculateMetrics(effectiveBeta, effectiveDelta, 1.0);
-  }, [state.beta, state.delta, state.referenceFrame]);
+  }, [state.beta, state.delta, state.referenceFrame, customMetricsOverride]);
+
+  const handleStateChange = (updater: (prev: RelativisticState) => RelativisticState) => {
+    setCustomMetricsOverride(null);
+    setState(updater);
+  };
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden select-none font-sans">
       {/* Header */}
       <Header
         state={state}
-        onStateChange={setState}
+        onStateChange={handleStateChange}
         onOpenExplainer={() => setIsExplainerOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
       />
@@ -57,8 +76,11 @@ export default function App() {
         <main className="flex-1 relative h-[55vh] lg:h-full min-h-0">
           <ThreeVisualizer
             state={state}
-            onStateChange={setState}
+            onStateChange={handleStateChange}
             metrics={metrics}
+            onMetricsUpdate={setCustomMetricsOverride}
+            pythonScript={pythonScript}
+            onPythonScriptChange={setPythonScript}
           />
 
           {/* Rest Frame Banner (if user selected Cube Rest Frame) */}
@@ -76,7 +98,7 @@ export default function App() {
         {/* Right Sidebar Control Panel */}
         <ControlPanel
           state={state}
-          onStateChange={setState}
+          onStateChange={handleStateChange}
           metrics={metrics}
           onOpenExplainer={() => setIsExplainerOpen(true)}
           onOpenAndroidModal={() => setIsAndroidModalOpen(true)}

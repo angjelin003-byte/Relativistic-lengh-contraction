@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, BookOpen, Sparkles, ArrowRight, Atom, Box, Layers, HelpCircle } from 'lucide-react';
 import { RelativisticMetrics } from '../types';
-import { formatMetricLength } from '../utils/physics';
+import { formatMetricLength } from '../utils/pythonEngine';
 
 interface ExplainerModalProps {
   isOpen: boolean;
