@@ -10,6 +10,10 @@ import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 import org.json.JSONObject;
 
+/**
+ * Native Android Activity delegating UI events and physics logic directly
+ * to the Chaquopy Python engine (main.py).
+ */
 public class MainActivity extends AppCompatActivity {
 
     private RelativisticSurfaceView surfaceView;
@@ -38,24 +42,20 @@ public class MainActivity extends AppCompatActivity {
         Button btn99 = findViewById(R.id.btn_preset_99);
         Button btnLimit = findViewById(R.id.btn_preset_limit);
 
-        // Initialize Chaquopy Python runtime
+        // 1. Initialize Python runtime
         initPython();
 
-        // Setup Seekbar
+        // 2. Setup SeekBar listener -> Python
         speedSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    if (progress == 0) {
-                        applySpeedFromPython(0.0);
-                    } else if (progress >= 999) {
-                        applyNinesFromPython(11);
-                    } else {
-                        double norm = progress / 1000.0;
-                        double exponent = 11.0 * Math.pow(norm, 2.2);
-                        double delta = Math.pow(10.0, -exponent);
-                        double beta = Math.min(1.0 - delta, 0.99999999999);
-                        applySpeedFromPython(beta);
+                if (fromUser && pyModule != null) {
+                    try {
+                        PyObject res = pyModule.callAttr("android_on_slider_progress", progress);
+                        updateMetricsUi(res.toString(), false);
+                        surfaceView.invalidate();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -67,29 +67,21 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        // Setup Preset Buttons
-        btnRest.setOnClickListener(v -> {
-            speedSeekBar.setProgress(0);
-            applySpeedFromPython(0.0);
-        });
+        // 3. Setup Presets -> Python
+        btnRest.setOnClickListener(v -> callPythonPreset("rest"));
+        btnHalf.setOnClickListener(v -> callPythonPreset("half"));
+        btn99.setOnClickListener(v -> callPythonPreset("99"));
+        btnLimit.setOnClickListener(v -> callPythonPreset("limit"));
 
-        btnHalf.setOnClickListener(v -> {
-            speedSeekBar.setProgress(600);
-            applySpeedFromPython(0.8660254);
-        });
-
-        btn99.setOnClickListener(v -> {
-            speedSeekBar.setProgress(800);
-            applySpeedFromPython(0.99);
-        });
-
-        btnLimit.setOnClickListener(v -> {
-            speedSeekBar.setProgress(1000);
-            applyNinesFromPython(11); // 0.99999999999 c
-        });
-
-        // Initial update
-        applySpeedFromPython(0.8660254);
+        // 4. Initial state from Python
+        if (pyModule != null) {
+            try {
+                PyObject initialMetrics = pyModule.callAttr("android_get_metrics");
+                updateMetricsUi(initialMetrics.toString(), true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void initPython() {
@@ -99,111 +91,49 @@ public class MainActivity extends AppCompatActivity {
             }
             Python py = Python.getInstance();
             pyModule = py.getModule("main");
+            if (surfaceView != null) {
+                surfaceView.setPyModule(pyModule);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void applySpeedFromPython(double beta) {
-        String jsonState = null;
+    private void callPythonPreset(String preset) {
         if (pyModule != null) {
             try {
-                PyObject result = pyModule.callAttr("android_set_speed", beta);
-                jsonState = result.toString();
+                PyObject res = pyModule.callAttr("android_apply_preset", preset);
+                updateMetricsUi(res.toString(), true);
+                surfaceView.invalidate();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        if (jsonState == null) {
-            jsonState = fallbackComputeState(beta, -1);
-        }
-        updateUi(jsonState);
     }
 
-    private void applyNinesFromPython(int nines) {
-        String jsonState = null;
-        if (pyModule != null) {
-            try {
-                PyObject result = pyModule.callAttr("android_set_nines", nines);
-                jsonState = result.toString();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        if (jsonState == null) {
-            jsonState = fallbackComputeState(1.0 - Math.pow(10, -nines), nines);
-        }
-        updateUi(jsonState);
-    }
-
-    private void updateUi(String jsonState) {
+    private void updateMetricsUi(String jsonMetrics, boolean updateSeekBar) {
         try {
-            surfaceView.updateStateFromJson(jsonState);
+            JSONObject m = new JSONObject(jsonMetrics);
+            String formattedSpeed = m.optString("formatted_speed", "0.0 c");
+            String formattedGamma = m.optString("formatted_gamma", "1.0000");
+            String formattedLength = m.optString("formatted_contracted_length", "1.0000 m");
+            double density = m.optDouble("density_ratio", 1.0);
 
-            JSONObject root = new JSONObject(jsonState);
-            JSONObject metrics = root.getJSONObject("metrics");
-            double beta = metrics.getDouble("beta");
-            double gamma = metrics.getDouble("gamma");
-            String formattedLength = metrics.getString("formatted_contracted_length");
-            double density = metrics.getDouble("density_ratio");
+            textSpeed.setText("β = " + formattedSpeed);
+            textGamma.setText("γ = " + formattedGamma);
+            textLength.setText("Contracted L: " + formattedLength + " (from 1.0000 m)");
 
-            textSpeed.setText(String.format("β = %.5f c", beta));
-            if (gamma >= 1000) {
-                textGamma.setText(String.format("γ = %.2e", gamma));
-            } else {
-                textGamma.setText(String.format("γ = %.4f", gamma));
-            }
-
-            textLength.setText(String.format("Contracted Length L: %s (from 1.0000 m)", formattedLength));
             if (density >= 1000) {
                 textDensity.setText(String.format("Atomic Packing: %.2ex density (Lattice compacted)", density));
             } else {
                 textDensity.setText(String.format("Atomic Packing: %.2fx density (Lattice compacted)", density));
             }
+
+            if (updateSeekBar && m.has("slider_progress")) {
+                speedSeekBar.setProgress(m.getInt("slider_progress"));
+            }
         } catch (Exception e) {
             e.printStackTrace();
-        }
-    }
-
-    /**
-     * Fallback computation in native Java if Python module is not yet initialized
-     */
-    private String fallbackComputeState(double beta, int forceNines) {
-        double delta = forceNines > 0 ? Math.pow(10, -forceNines) : Math.max(1e-15, 1.0 - beta);
-        double denom = delta * (2.0 - delta);
-        double gamma = denom <= 0 ? 1e8 : 1.0 / Math.sqrt(denom);
-        double L = 1.0 / gamma;
-
-        try {
-            JSONObject root = new JSONObject();
-            JSONObject m = new JSONObject();
-            m.put("beta", beta);
-            m.put("gamma", gamma);
-            m.put("motion_axis", "x");
-            m.put("formatted_contracted_length", String.format("%.6f m", L));
-            m.put("density_ratio", gamma);
-            root.put("metrics", m);
-
-            // 8 vertices for rest ghost and contracted cube
-            double scaleX = Math.max(0.001, 1.0 / gamma);
-            double h = 1.0;
-            org.json.JSONArray cVerts = new org.json.JSONArray();
-            org.json.JSONArray gVerts = new org.json.JSONArray();
-            double[][] signs = {
-                {-1,-1,-1}, {1,-1,-1}, {1,1,-1}, {-1,1,-1},
-                {-1,-1,1}, {1,-1,1}, {1,1,1}, {-1,1,1}
-            };
-            for (double[] s : signs) {
-                cVerts.put(new org.json.JSONArray(new double[]{s[0] * h * scaleX, s[1] * h, s[2] * h}));
-                gVerts.put(new org.json.JSONArray(new double[]{s[0] * h, s[1] * h, s[2] * h}));
-            }
-            root.put("cube_vertices", cVerts);
-            root.put("ghost_vertices", gVerts);
-            root.put("atoms", new org.json.JSONArray());
-            root.put("bonds", new org.json.JSONArray());
-            return root.toString();
-        } catch (Exception e) {
-            return "{}";
         }
     }
 }
