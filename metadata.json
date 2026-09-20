@@ -1,0 +1,6 @@
+{
+  "name": "Relativistic Length Contraction 3D",
+  "description": "Interactive 3D visualization of relativistic length contraction of a cube approaching 0.99999999999 c, with atomic lattice grip points and ghost rigid rest frame.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

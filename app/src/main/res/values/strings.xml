@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Relativistic Length Contraction</string>
+    <string name="title_controls">Relativistic Speed Controls</string>
+    <string name="axis_x">X Axis</string>
+    <string name="axis_y">Y Axis</string>
+    <string name="axis_z">Z Axis</string>
+</resources>

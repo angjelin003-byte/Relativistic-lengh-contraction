@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_dark">#0A0C14</color>
+    <color name="surface_dark">#0F172A</color>
+    <color name="cyan_400">#22D3EE</color>
+    <color name="cyan_500">#06B6D4</color>
+    <color name="slate_400">#94A3B8</color>
+    <color name="slate_700">#334155</color>
+    <color name="purple_400">#C084FC</color>
+</resources>

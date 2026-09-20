@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_dark">
+
+    <!-- Top Header Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="@color/surface_dark"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Relativistic Contraction 3D"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.99999999999 c"
+            android:textColor="@color/cyan_400"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:padding="4dp" />
+    </LinearLayout>
+
+    <!-- Custom 3D View Rendered from Python State -->
+    <com.relativity.lengthcontraction.RelativisticSurfaceView
+        android:id="@+id/relativistic_3d_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Bottom Relativistic Metrics & Control Dashboard -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/surface_dark"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <TextView
+                android:id="@+id/text_speed_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="β = 0.8660 c"
+                android:textColor="@color/cyan_400"
+                android:textStyle="bold"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/text_gamma_label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:text="γ = 2.0000"
+                android:textColor="#E2E8F0"
+                android:textStyle="bold"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_length_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Contracted Length L: 0.5000 m (from 1.0000 m)"
+            android:textColor="@color/slate_400"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/text_density_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Atomic Packing: 2.00x density (Grip points compacted)"
+            android:textColor="@color/purple_400"
+            android:textSize="12sp" />
+
+        <!-- Velocity SeekBar -->
+        <SeekBar
+            android:id="@+id/speed_seekbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:max="1000"
+            android:progress="600" />
+
+        <!-- Quick 9s Presets Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
+            android:weightSum="4">
+
+            <Button
+                android:id="@+id/btn_preset_rest"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="0.0 c"
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/btn_preset_half"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="0.866 c"
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/btn_preset_99"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="0.99 c"
+                android:textSize="11sp" />
+
+            <Button
+                android:id="@+id/btn_preset_limit"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:text="11 Nines"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
